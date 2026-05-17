@@ -1,0 +1,12 @@
+[Unit]
+Description=Auto-connect Mobo Bluetooth speaker
+After=bluetooth.target pipewire.service wireplumber.service
+Wants=bluetooth.target pipewire.service wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/viajeazteca/turista/scripts/connect-mobo.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

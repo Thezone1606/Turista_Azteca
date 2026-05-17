@@ -50,7 +50,13 @@ class DiceButton:
 
     def wait_for_trigger(self, allow_console: bool = True) -> str:
         """Bloquea hasta que se dispare el botón o Enter en consola.
-        Devuelve 'button' o 'console'."""
+        Devuelve 'button' o 'console'.
+
+        Si stdin no es un TTY (ej. corriendo como systemd service con
+        StandardInput=null), ignora la consola para no leer EOF en loop.
+        """
+        if allow_console and not sys.stdin.isatty():
+            allow_console = False
         self._press_event.clear()
         while True:
             if self.available and self._press_event.is_set():

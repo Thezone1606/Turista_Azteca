@@ -1,0 +1,25 @@
+[Unit]
+Description=Turista Mundial Azteca - juego principal
+# Espera a que el audio esté listo y a que la bocina esté conectada
+After=connect-mobo.service pipewire.service wireplumber.service
+Wants=connect-mobo.service
+Requires=pipewire.service wireplumber.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/viajeazteca/turista
+# Pequeño delay para que pipewire-pulse termine de exponer el sink BT
+ExecStartPre=/bin/sleep 8
+ExecStart=/home/viajeazteca/turista/.venv/bin/python -m game.main
+# Si crashea, reintenta tras 10 seg
+Restart=on-failure
+RestartSec=10
+# Variables de entorno para que stdin/stdout funcione bien en service mode
+Environment=PYTHONUNBUFFERED=1
+Environment=TERM=dumb
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

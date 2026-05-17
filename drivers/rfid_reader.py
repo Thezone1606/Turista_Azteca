@@ -67,10 +67,14 @@ class RFIDReader:
 
     def read_uid(self, timeout: float | None = None, allow_console: bool = True) -> str | None:
         """Espera hasta detectar una tarjeta o input de consola.
-        Devuelve el UID como string hex en mayúsculas, o None en timeout."""
+        Devuelve el UID como string hex en mayúsculas, o None en timeout.
+
+        Si stdin no es un TTY (ej. systemd service), ignora la consola.
+        """
+        if allow_console and not sys.stdin.isatty():
+            allow_console = False
         deadline = None if timeout is None else time.monotonic() + timeout
 
-        # buffer para input asíncrono de consola
         while True:
             if deadline is not None and time.monotonic() >= deadline:
                 return None

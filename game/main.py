@@ -82,12 +82,15 @@ class HardwareIO:
             input()
 
     def ask_yes_no(self, prompt: str) -> bool:
+        # Si stdin no es TTY (service mode), no leer consola — solo RFID
+        stdin_ok = sys.stdin.isatty()
         hint = ""
         if self._has_yes_no_cards and self.rfid.available:
-            hint = " (escanea SÍ/NO o teclea s/n)"
+            hint = " (escanea SÍ/NO" + (" o teclea s/n" if stdin_ok else ")")
+            if stdin_ok:
+                hint += ")"
         print(f"{prompt}{hint}", flush=True)
         while True:
-            # Carrera: RFID + stdin
             if self.rfid.available and self._has_yes_no_cards:
                 uid = self.rfid.read_uid(timeout=0.2, allow_console=False)
                 if uid:
@@ -100,13 +103,22 @@ class HardwareIO:
                         if name == "no":
                             print("  → NO (tarjeta)")
                             return False
-            ready, _, _ = select.select([sys.stdin], [], [], 0.1)
-            if ready:
-                r = sys.stdin.readline().strip().lower()
-                if r in ("s", "si", "sí", "y", "yes"):
-                    return True
-                if r in ("n", "no"):
+            if stdin_ok:
+                ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+                if ready:
+                    r = sys.stdin.readline().strip().lower()
+                    if r in ("s", "si", "sí", "y", "yes"):
+                        return True
+                    if r in ("n", "no"):
+                        return False
+            else:
+                # Sin stdin y sin RFID con tarjetas SI/NO disponibles, esperaríamos
+                # para siempre — por seguridad, default conservador NO (no compra)
+                if not (self.rfid.available and self._has_yes_no_cards):
+                    print("  (sin medio de respuesta; asumiendo NO)")
                     return False
+                # Si hay RFID pero sin tarjetas, hacemos polling más lento
+                import time as _t; _t.sleep(0.2)
 
 
 class AutoIO:
